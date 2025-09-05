@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login - Firebase Messaging</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #121212;
+      --primary: #1e88e5;
+      --primary-light: #6ab7ff;
+      --text-primary: #e0e0e0;
+      --text-secondary: #a0a0a0;
+      --chat-bg: #1e1e1e;
+      --border-radius: 12px;
+      --font-family: 'Inter', sans-serif;
+      --transition-speed: 0.3s;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin:0; background: var(--bg); color: var(--text-primary);
+      font-family: var(--font-family);
+      display: flex; justify-content: center; align-items: center;
+      height: 100vh; overflow: hidden;
+      user-select:none;
+    }
+    #auth-container {
+      background: var(--chat-bg);
+      padding: 40px 32px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+    }
+    h2 {
+      margin-bottom: 20px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 1.75rem;
+      color: var(--primary-light);
+      user-select:none;
+    }
+    label {
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+      color: var(--text-secondary);
+      display: block;
+      user-select:none;
+    }
+    input[type=email], input[type=password] {
+      width: 100%;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      border-radius: var(--border-radius);
+      border: none;
+      background: #222;
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+    input[type=email]:focus, input[type=password]:focus {
+      outline: 2px solid var(--primary-light);
+      background: #333;
+    }
+    button {
+      all: unset;
+      cursor: pointer;
+    }
+    button#auth-submit {
+      background: var(--primary);
+      color: white;
+      padding: 14px 0;
+      border-radius: var(--border-radius);
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 12px;
+      user-select:none;
+      text-align: center;
+      transition: background-color var(--transition-speed);
+    }
+    button#auth-submit:disabled {
+      background: #444;
+      cursor: not-allowed;
+    }
+    button#auth-submit:not(:disabled):hover {
+      background: var(--primary-light);
+    }
+    .toggle-auth {
+      text-align: center;
+      color: var(--text-secondary);
+      user-select:none;
+    }
+    .toggle-auth a {
+      font-weight: 700;
+      user-select:none;
+      color: var(--primary-light);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .toggle-auth a:hover {
+      color: var(--primary);
+      outline: none;
+    }
+    .error-msg {
+      color: #ff6b6b;
+      user-select:none;
+      font-size: 0.875rem;
+      text-align: center;
+      height: 22px;
+      margin-bottom: 8px;
+    }
+    @media (max-width: 480px) {
+      #auth-container {
+        border-radius: 0;
+        box-shadow: none;
+        height: 100vh;
+        padding: 20px 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main id="auth-container">
+    <h2 id="auth-title">Login</h2>
+    <form id="auth-form" aria-live="polite" aria-atomic="true" aria-describedby="auth-error">
+      <div class="error-msg" id="auth-error" role="alert" aria-live="assertive"></div>
+      <label for="email-input">Email</label>
+      <input type="email" id="email-input" autocomplete="email" required placeholder="you@example.com" />
+      <label for="password-input">Password</label>
+      <input type="password" id="password-input" autocomplete="current-password" required placeholder="Enter password" />
+      <button id="auth-submit" type="submit">Login</button>
+    </form>
+    <div class="toggle-auth">
+      <span id="toggle-text">Don't have an account? </span><a id="toggle-link" href="#">Register</a>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+  <script>
+    // Firebase config: Replace with your Firebase project config!
+    const firebaseConfig = {
+      apiKey: "AIzaSyD5m7J4xlv1Wsew2umctRFKQNJmrDNR0p8",
+      authDomain: "mymessagingapp-910e1.firebaseapp.com",
+      projectId: "mymessagingapp-910e1",
+      storageBucket: "mymessagingapp-910e1.appspot.com",
+      messagingSenderId: "195144814418",
+      appId: "1:195144814418:web:39adbde72acb612c9bf48b"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    const authForm = document.getElementById('auth-form');
+    const authError = document.getElementById('auth-error');
+    const authTitle = document.getElementById('auth-title');
+    const toggleText = document.getElementById('toggle-text');
+    const toggleLink = document.getElementById('toggle-link');
+    const emailInput = document.getElementById('email-input');
+    const passwordInput = document.getElementById('password-input');
+    const authSubmit = document.getElementById('auth-submit');
+
+    let isLoginMode = true;
+
+    toggleLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      isLoginMode = !isLoginMode;
+      if (isLoginMode) {
+        authTitle.textContent = 'Login';
+        authSubmit.textContent = 'Login';
+        toggleText.textContent = "Don't have an account? ";
+        toggleLink.textContent = 'Register';
+      } else {
+        authTitle.textContent = 'Register';
+        authSubmit.textContent = 'Register';
+        toggleText.textContent = 'Already have an account? ';
+        toggleLink.textContent = 'Login';
+      }
+      authError.textContent = '';
+      authForm.reset();
+      emailInput.focus();
+    });
+
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      authError.textContent = '';
+      authSubmit.disabled = true;
+      try {
+        const email = emailInput.value.trim();
+        const password = passwordInput.value.trim();
+
+        if (isLoginMode) {
+          await auth.signInWithEmailAndPassword(email, password);
+        } else {
+          await auth.createUserWithEmailAndPassword(email, password);
+        }
+        // Redirect on successful login/register
+        window.location.href = 'admin.html';
+      } catch (err) {
+        authError.textContent = err.message;
+      } finally {
+        authSubmit.disabled = false;
+      }
+    });
+
+    // Redirect logged in users automatically
+    auth.onAuthStateChanged(user => {
+      if(user) {
+        window.location.href = 'admin.html';
+      }
+    });
+  </script>
+</body>
+</html>
+

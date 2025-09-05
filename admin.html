@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBT Admin Panel</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f5f7fb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #4e73df;
+        }
+        .sidebar {
+            background-color: white;
+            border-right: 1px solid #e3e6f0;
+        }
+        .main-content {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        .question-card {
+            border-left: 4px solid #4e73df;
+        }
+        .grading-scale {
+            border: 1px solid #e3e6f0;
+            border-radius: 8px;
+        }
+        .user-welcome {
+            color: #4e73df;
+            font-weight: 600;
+        }
+        .question-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+        .subject-badge {
+            font-size: 0.8rem;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row min-vh-100">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="d-flex flex-column p-3">
+                    <div class="text-center mb-4">
+                        <img src="https://placehold.co/150x50" alt="CBT Exam System Logo with graduation cap icon" class="img-fluid">
+                        <h5 class="my-3">Admin Dashboard</h5>
+                        <div class="user-welcome" id="user-welcome">Welcome, User</div>
+                    </div>
+                    <ul class="nav nav-pills flex-column mb-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link active" id="dashboard-tab">
+                                <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="nav-link" id="exams-tab">
+                                <i class="bi bi-journal-text me-2"></i>Manage Exams
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="nav-link" id="results-tab">
+                                <i class="bi bi-bar-chart me-2"></i>Exam Results
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="nav-link" id="settings-tab">
+                                <i class="bi bi-gear me-2"></i>Settings
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="nav-link" id="logout-btn">
+                                <i class="bi bi-box-arrow-right me-2"></i>Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2" id="page-title">Dashboard</h1>
+                </div>
+
+                <!-- Dashboard Tab -->
+                <div class="main-content p-4 mb-4" id="dashboard-content">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card text-white bg-primary mb-4">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Exams</h5>
+                                    <h2 class="card-text" id="total-exams">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-white bg-success mb-4">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Users</h5>
+                                    <h2 class="card-text" id="total-users">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-white bg-warning mb-4">
+                                <div class="card-body">
+                                    <h5 class="card-title">Completed Exams</h5>
+                                    <h2 class="card-text" id="completed-exams">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Recent Exam Submissions</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover" id="recent-results">
+                                            <thead>
+                                                <tr>
+                                                    <th>User</th>
+                                                    <th>Exam</th>
+                                                    <th>Score</th>
+                                                    <th>Date</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Will be populated by JS -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Exams Tab -->
+                <div class="main-content p-4 mb-4 d-none" id="exams-content">
+                    <div class="d-flex justify-content-between mb-4">
+                        <h3>Manage Exams</h3>
+                        <button class="btn btn-primary" id="add-exam-btn">Add Exam</button>
+                    </div>
+                    
+                    <!-- Add Exam Modal -->
+                    <div class="modal fade" id="examModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="modal-title">Create New Exam</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="exam-form">
+                                        <div class="mb-3">
+                                            <label for="exam-title" class="form-label">Exam Title</label>
+                                            <input type="text" class="form-control" id="exam-title" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="exam-subject" class="form-label">Subject</label>
+                                            <input type="text" class="form-control" id="exam-subject" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="exam-duration" class="form-label">Duration (minutes)</label>
+                                            <input type="number" class="form-control" id="exam-duration" value="60" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="passing-grade" class="form-label">Passing Grade (%)</label>
+                                            <input type="number" class="form-control" id="passing-grade" value="60" min="0" max="100" required>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-primary" id="create-exam-btn">Create Exam</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Questions Modal -->
+                    <div class="modal fade" id="questionsModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Add Questions to: <span id="current-exam-title"></span></h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <button class="btn btn-sm btn-outline-primary" id="add-question-btn">Add Question</button>
+                                    </div>
+                                    <div id="questions-container">
+                                        <!-- Questions will be added here -->
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-primary" id="save-questions-btn">Save Questions</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exams List -->
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="exams-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Exam Title</th>
+                                    <th>Subject</th>
+                                    <th>Questions</th>
+                                    <th>Duration</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Results Tab -->
+                <div class="main-content p-4 mb-4 d-none" id="results-content">
+                    <h3>Exam Results</h3>
+                    <div class="row mt-4">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5>All Exam Results</h5>
+                                    <div class="input-group" style="width: 300px;">
+                                        <input type="text" class="form-control" placeholder="Search results..." id="results-search">
+                                        <button class="btn btn-outline-secondary" type="button" id="search-results-btn">
+                                            <i class="bi bi-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover" id="results-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Exam</th>
+                                                    <th>User</th>
+                                                    <th>Score</th>
+                                                    <th>Grade</th>
+                                                    <th>Date</th>
+                                                    <th>Details</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Will be populated by JS -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card grading-scale">
+                                <div class="card-header">
+                                    <h5>Grading Scale</h5>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            A (Excellent)
+                                            <span class="badge bg-primary rounded-pill">90-100%</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            B (Good)
+                                            <span class="badge bg-info rounded-pill">80-89%</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            C (Average)
+                                            <span class="badge bg-secondary rounded-pill">70-79%</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            D (Pass)
+                                            <span class="badge bg-warning rounded-pill">60-69%</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            F (Fail)
+                                            <span class="badge bg-danger rounded-pill">0-59%</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div class="main-content p-4 mb-4 d-none" id="settings-content">
+                    <h3>System Settings</h3>
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5>General Settings</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="general-settings">
+                                        <div class="mb-3">
+                                            <label for="system-name" class="form-label">System Name</label>
+                                            <input type="text" class="form-control" id="system-name" value="CBT Exam System">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="time-limit" class="form-label">Default Exam Time Limit (minutes)</label>
+                                            <input type="number" class="form-control" id="time-limit" value="60">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="passing-grade" class="form-label">Default Passing Grade (%)</label>
+                                            <input type="number" class="form-control" id="passing-grade" value="60">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="max-questions" class="form-label">Maximum Questions per Exam</label>
+                                            <input type="number" class="form-control" id="max-questions" value="100" min="1">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>User Management</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Add New Admin</label>
+                                        <div class="input-group">
+                                            <input type="email" class="form-control" placeholder="Admin email" id="admin-email">
+                                            <button class="btn btn-primary" type="button" id="add-admin-btn">Add</button>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Admin Users</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="admin-users-list">
+                                                <!-- Will be populated by JS -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Firebase configuration (replace with your actual config)
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5m7J4xlv1Wsew2umctRFKQNJmrDNR0p8",
+            authDomain: "mymessagingapp-910e1.firebaseapp.com",
+            projectId: "mymessagingapp-910e1",
+            storageBucket: "mymessagingapp-910e1.appspot.com",
+            messagingSenderId: "195144814418",
+            appId: "1:195144814418:web:39adbde72acb612c9bf48b"
+        };
+        
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // DOM Elements
+        const navTabs = document.querySelectorAll('.nav-link');
+        const contentSections = document.querySelectorAll('.main-content');
+        const logoutBtn = document.getElementById('logout-btn');
+        const pageTitle = document.getElementById('page-title');
+        const userWelcome = document.getElementById('user-welcome');
+        
+        // Dashboard elements
+        const totalExamsEl = document.getElementById('total-exams');
+        const totalUsersEl = document.getElementById('total-users');
+        const completedExamsEl = document.getElementById('completed-exams');
+        const recentResultsTable = document.getElementById('recent-results').querySelector('tbody');
+        
+        // Exams elements
+        const addExamBtn = document.getElementById('add-exam-btn');
+        const examsTable = document.getElementById('exams-table').querySelector('tbody');
+        const examModal = new bootstrap.Modal(document.getElementById('examModal'));
+        const questionsModal = new bootstrap.Modal(document.getElementById('questionsModal'));
+        const createExamBtn = document.getElementById('create-exam-btn');
+        const examForm = document.getElementById('exam-form');
+        const addQuestionBtn = document.getElementById('add-question-btn');
+        const saveQuestionsBtn = document.getElementById('save-questions-btn');
+        const questionsContainer = document.getElementById('questions-container');
+        const currentExamTitle = document.getElementById('current-exam-title');
+        
+        // Results elements
+        const resultsTable = document.getElementById('results-table').querySelector('tbody');
+        
+        // Settings elements
+        const generalSettingsForm = document.getElementById('general-settings');
+        const addAdminBtn = document.getElementById('add-admin-btn');
+        const adminUsersList = document.getElementById('admin-users-list');
+
+        // Current user and data
+        let currentUser = null;
+        let exams = [];
+        let examResults = [];
+        let adminUsers = [];
+        let currentExamId = null;
+        let questionCounter = 0;
+        let settings = {};
+
+        // Tab switching functionality
+        navTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                // Update active tab
+                navTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Update page title
+                pageTitle.textContent = tab.textContent.trim();
+                
+                // Show corresponding content
+                const targetId = tab.id.replace('-tab', '-content');
+                contentSections.forEach(section => section.classList.add('d-none'));
+                document.getElementById(targetId).classList.remove('d-none');
+                
+                // Load data if needed
+                if (targetId === 'exams-content' && exams.length === 0) {
+                    loadExams();
+                } else if (targetId === 'results-content' && examResults.length === 0) {
+                    loadExamResults();
+                } else if (targetId === 'settings-content') {
+                    loadSettings();
+                    if (adminUsers.length === 0) {
+                        loadAdminUsers();
+                    }
+                }
+            });
+        });
+
+        // Logout functionality
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut().then(() => {
+                window.location.href = 'index.html';
+            }).catch(error => {
+                console.error('Logout error:', error);
+            });
+        });
+
+        // Add exam modal
+        addExamBtn.addEventListener('click', () => {
+            document.getElementById('modal-title').textContent = 'Create New Exam';
+            examForm.reset();
+            examModal.show();
+        });
+
+        // Create exam
+        createExamBtn.addEventListener('click', async () => {
+            const examTitle = document.getElementById('exam-title').value;
+            const examSubject = document.getElementById('exam-subject').value;
+            const examDuration = document.getElementById('exam-duration').value;
+            const passingGrade = document.getElementById('passing-grade').value;
+            
+            try {
+                const docRef = await db.collection('exams').add({
+                    title: examTitle,
+                    subject: examSubject,
+                    duration: parseInt(examDuration),
+                    passingGrade: parseInt(passingGrade),
+                    questions: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdBy: currentUser.uid
+                });
+                
+                examModal.hide();
+                currentExamId = docRef.id;
+                currentExamTitle.textContent = examTitle;
+                questionsContainer.innerHTML = '';
+                questionCounter = 0;
+                questionsModal.show();
+            } catch (error) {
+                console.error('Error creating exam:', error);
+                alert('Failed to create exam. Please try again.');
+            }
+        });
+
+        // Add question to exam
+        addQuestionBtn.addEventListener('click', () => {
+            if (questionCounter >= 100) {
+                alert('Maximum questions reached (100)');
+                return;
+            }
+            
+            questionCounter++;
+            const questionHtml = `
+                <div class="card mb-3 question-item" data-id="${questionCounter}">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Question #${questionCounter}</h6>
+                        <button type="button" class="btn btn-sm btn-danger remove-question" data-id="${questionCounter}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Question Text</label>
+                            <textarea class="form-control question-text" rows="2" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Options</label>
+                            <div class="input-group mb-2">
+                                <div class="input-group-text">
+                                    <input class="form-check-input mt-0 correct-answer" type="radio" name="correct-${questionCounter}" value="0" required>
+                                </div>
+                                <input type="text" class="form-control option-text" placeholder="Option A" required>
+                            </div>
+                            <div class="input-group mb-2">
+                                <div class="input-group-text">
+                                    <input class="form-check-input mt-0 correct-answer" type="radio" name="correct-${questionCounter}" value="1">
+                                </div>
+                                <input type="text" class="form-control option-text" placeholder="Option B" required>
+                            </div>
+                            <div class="input-group mb-2">
+                                <div class="input-group-text">
+                                    <input class="form-check-input mt-0 correct-answer" type="radio" name="correct-${questionCounter}" value="2">
+                                </div>
+                                <input type="text" class="form-control option-text" placeholder="Option C" required>
+                            </div>
+                            <div class="input-group mb-2">
+                                <div class="input-group-text">
+                                    <input class="form-check-input mt-0 correct-answer" type="radio" name="correct-${questionCounter}" value="3">
+                                </div>
+                                <input type="text" class="form-control option-text" placeholder="Option D" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            questionsContainer.insertAdjacentHTML('beforeend', questionHtml);
+            
+            // Add event listener to remove button
+            document.querySelector(`.remove-question[data-id="${questionCounter}"]`).addEventListener('click', function() {
+                document.querySelector(`.question-item[data-id="${this.dataset.id}"]`).remove();
+                questionCounter--;
+            });
+        });
+
+        // Save questions to exam
+        saveQuestionsBtn.addEventListener('click', async () => {
+            const questionItems = questionsContainer.querySelectorAll('.question-item');
+            const questions = [];
+            
+            for (const item of questionItems) {
+                const questionText = item.querySelector('.question-text').value;
+                const options = Array.from(item.querySelectorAll('.option-text')).map(input => input.value);
+                const correctAnswer = item.querySelector('.correct-answer:checked').value;
+                
+                questions.push({
+                    text: questionText,
+                    options: options,
+                    correctAnswer: parseInt(correctAnswer)
+                });
+            }
+            
+            try {
+                await db.collection('exams').doc(currentExamId).update({
+                    questions: questions
+                });
+                
+                questionsModal.hide();
+                loadExams();
+                alert('Exam created successfully with ' + questions.length + ' questions!');
+            } catch (error) {
+                console.error('Error saving questions:', error);
+                alert('Failed to save questions. Please try again.');
+            }
+        });
+
+        // Load exams from Firestore
+        async function loadExams() {
+            try {
+                const querySnapshot = await db.collection('exams')
+                    .orderBy('createdAt', 'desc')
+                    .get();
+                
+                exams = [];
+                examsTable.innerHTML = '';
+                
+                querySnapshot.forEach((doc, index) => {
+                    const data = doc.data();
+                    exams.push({ id: doc.id, ...data });
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${data.title}</td>
+                        <td><span class="badge bg-primary subject-badge">${data.subject}</span></td>
+                        <td>${data.questions ? data.questions.length : 0}</td>
+                        <td>${data.duration} mins</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary view-exam" data-id="${doc.id}">View</button>
+                            <button class="btn btn-sm btn-outline-danger delete-exam" data-id="${doc.id}">Delete</button>
+                        </td>
+                    `;
+                    examsTable.appendChild(row);
+                });
+                
+                // Add event listeners to action buttons
+                document.querySelectorAll('.view-exam').forEach(btn => {
+                    btn.addEventListener('click', () => viewExam(btn.dataset.id));
+                });
+                
+                document.querySelectorAll('.delete-exam').forEach(btn => {
+                    btn.addEventListener('click', () => deleteExam(btn.dataset.id));
+                });
+                
+                // Update dashboard count
+                totalExamsEl.textContent = exams.length;
+            } catch (error) {
+                console.error('Error loading exams:', error);
+            }
+        }
+
+        // View exam details
+        function viewExam(examId) {
+            const exam = exams.find(e => e.id === examId);
+            if (!exam) return;
+            
+            alert(`Exam: ${exam.title}\nSubject: ${exam.subject}\nQuestions: ${exam.questions.length}\nDuration: ${exam.duration} minutes`);
+        }
+
+        // Delete exam
+        async function deleteExam(examId) {
+            if (confirm('Are you sure you want to delete this exam? This action cannot be undone.')) {
+                try {
+                    await db.collection('exams').doc(examId).delete();
+                    loadExams();
+                } catch (error) {
+                    console.error('Error deleting exam:', error);
+                    alert('Failed to delete exam. Please try again.');
+                }
+            }
+        }
+
+        // Load exam results
+        async function loadExamResults() {
+            try {
+                const querySnapshot = await db.collection('examResults')
+                    .orderBy('submittedAt', 'desc')
+                    .limit(50)
+                    .get();
+                
+                examResults = [];
+                resultsTable.innerHTML = '';
+                
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    examResults.push({ id: doc.id, ...data });
+                    
+                    // Calculate grade based on score
+                    let grade = 'F';
+                    let gradeClass = 'danger';
+                    if (data.score >= 90) {
+                        grade = 'A';
+                        gradeClass = 'primary';
+                    } else if (data.score >= 80) {
+                        grade = 'B';
+                        gradeClass = 'info';
+                    } else if (data.score >= 70) {
+                        grade = 'C';
+                        gradeClass = 'secondary';
+                    } else if (data.score >= 60) {
+                        grade = 'D';
+                        gradeClass = 'warning';
+                    }
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${data.examName || 'Untitled Exam'}</td>
+                        <td>${data.userEmail}</td>
+                        <td>${data.score}%</td>
+                        <td><span class="badge bg-${gradeClass}">${grade}</span></td>
+                        <td>${data.submittedAt.toDate().toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-info view-result" data-id="${doc.id}">View Details</button>
+                        </td>
+                    `;
+                    resultsTable.appendChild(row);
+                });
+                
+                // Update dashboard count
+                completedExamsEl.textContent = examResults.length;
+                
+                // Also update recent results in dashboard
+                updateRecentResults();
+                
+                // Add event listeners to view buttons
+                document.querySelectorAll('.view-result').forEach(btn => {
+                    btn.addEventListener('click', () => viewResultDetails(btn.dataset.id));
+                });
+            } catch (error) {
+                console.error('Error loading exam results:', error);
+            }
+        }
+
+        // View result details
+        function viewResultDetails(resultId) {
+            const result = examResults.find(r => r.id === resultId);
+            if (!result) return;
+            
+            alert(`Exam: ${result.examName || 'Untitled Exam'}\nUser: ${result.userEmail}\nScore: ${result.score}%\nSubmitted: ${result.submittedAt.toDate().toLocaleString()}`);
+        }
+
+        // Update recent results in dashboard
+        function updateRecentResults() {
+            recentResultsTable.innerHTML = '';
+            
+            examResults.slice(0, 5).forEach(result => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${result.userEmail}</td>
+                    <td>${result.examName || 'Untitled Exam'}</td>
+                    <td>${result.score}%</td>
+                    <td>${result.submittedAt.toDate().toLocaleDateString()}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info">Details</button>
+                    </td>
+                `;
+                recentResultsTable.appendChild(row);
+            });
+        }
+
+        // Load admin users
+        async function loadAdminUsers() {
+            try {
+                const querySnapshot = await db.collection('users')
+                    .where('role', '==', 'admin')
+                    .get();
+                
+                adminUsers = [];
+                adminUsersList.innerHTML = '';
+                
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    adminUsers.push({ id: doc.id, ...data });
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${data.email}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger remove-admin" data-id="${doc.id}" ${doc.id === currentUser.uid ? 'disabled' : ''}>
+                                Remove
+                            </button>
+                        </td>
+                    `;
+                    adminUsersList.appendChild(row);
+                });
+                
+                // Update dashboard count
+                totalUsersEl.textContent = adminUsers.length;
+            } catch (error) {
+                console.error('Error loading admin users:', error);
+            }
+        }
+
+        // Load settings
+        async function loadSettings() {
+            try {
+                const doc = await db.collection('settings').doc('general').get();
+                if (doc.exists) {
+                    settings = doc.data();
+                    document.getElementById('system-name').value = settings.systemName || 'CBT Exam System';
+                    document.getElementById('time-limit').value = settings.timeLimit || 60;
+                    document.getElementById('passing-grade').value = settings.passingGrade || 60;
+                    document.getElementById('max-questions').value = settings.maxQuestions || 100;
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        // Save settings
+        generalSettingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const systemName = document.getElementById('system-name').value;
+            const timeLimit = document.getElementById('time-limit').value;
+            const passingGrade = document.getElementById('passing-grade').value;
+            const maxQuestions = document.getElementById('max-questions').value;
+            
+            try {
+                await db.collection('settings').doc('general').set({
+                    systemName: systemName,
+                    timeLimit: parseInt(timeLimit),
+                    passingGrade: parseInt(passingGrade),
+                    maxQuestions: parseInt(maxQuestions),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedBy: currentUser.uid
+                });
+                
+                alert('Settings saved successfully!');
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alert('Failed to save settings. Please try again.');
+            }
+        });
+
+        // Add admin user
+        addAdminBtn.addEventListener('click', async () => {
+            const email = document.getElementById('admin-email').value.trim();
+            if (!email) {
+                alert('Please enter an email address');
+                return;
+            }
+            
+            try {
+                // First check if user exists
+                const userRecords = await auth.getUserByEmail(email);
+                
+                // Then update their role in Firestore
+                await db.collection('users').doc(userRecords.uid).set({
+                    email: email,
+                    role: 'admin'
+                }, { merge: true });
+                
+                document.getElementById('admin-email').value = '';
+                loadAdminUsers();
+                alert('Admin user added successfully!');
+            } catch (error) {
+                console.error('Error adding admin:', error);
+                alert('Failed to add admin. Make sure the user exists in the system.');
+            }
+        });
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check auth state
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    
+                    // Extract username from email and display it
+                    const username = user.email.split('@')[0];
+                    userWelcome.textContent = `Welcome, ${username}`;
+                    
+                    // Update tab names
+                    document.getElementById('questions-tab').textContent = 'Manage Exams';
+                    document.getElementById('questions-tab').innerHTML = '<i class="bi bi-journal-text me-2"></i>Manage Exams';
+                    
+                    // Load initial data for dashboard
+                    Promise.all([
+                        loadExams(),
+                        loadExamResults(),
+                        loadAdminUsers(),
+                        loadSettings()
+                    ]).catch(error => {
+                        console.error('Initial data loading error:', error);
+                    });
+                } else {
+                    // Redirect to login if not authenticated
+                    window.location.href = 'index.html';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
